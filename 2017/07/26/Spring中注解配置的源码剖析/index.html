@@ -1,0 +1,834 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.0" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="Spring,注解," />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.0" />
+
+
+
+
+
+
+<meta name="description" content="一、引入与概述在spring4.0时代，推荐使用注解配合JavaConfig的方式完成程序的配置，相应的XmlBeanFactory被废弃。Spring注解和JavaConfig配置方式成为Spring开发的主流方式，SpringBoot就是基于这两种方式实现的自动配置（SpringBoot的自动配置计划会写）。JavaConfig配置方式也是基于Spring注解实现的，所以今天先来赏析下Spri">
+<meta name="keywords" content="Spring,注解">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Spring中注解配置的源码剖析">
+<meta property="og:url" content="http://www.zixing.me/2017/07/26/Spring中注解配置的源码剖析/index.html">
+<meta property="og:site_name" content="bingh's blog">
+<meta property="og:description" content="一、引入与概述在spring4.0时代，推荐使用注解配合JavaConfig的方式完成程序的配置，相应的XmlBeanFactory被废弃。Spring注解和JavaConfig配置方式成为Spring开发的主流方式，SpringBoot就是基于这两种方式实现的自动配置（SpringBoot的自动配置计划会写）。JavaConfig配置方式也是基于Spring注解实现的，所以今天先来赏析下Spri">
+<meta property="og:image" content="http://ooegc62vm.bkt.clouddn.com/annotationSet.png">
+<meta property="og:image" content="http://ooegc62vm.bkt.clouddn.com/metaAnnotationMap.png">
+<meta property="og:image" content="http://ooegc62vm.bkt.clouddn.com/annotationType.png">
+<meta property="og:updated_time" content="2017-07-26T12:46:07.125Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Spring中注解配置的源码剖析">
+<meta name="twitter:description" content="一、引入与概述在spring4.0时代，推荐使用注解配合JavaConfig的方式完成程序的配置，相应的XmlBeanFactory被废弃。Spring注解和JavaConfig配置方式成为Spring开发的主流方式，SpringBoot就是基于这两种方式实现的自动配置（SpringBoot的自动配置计划会写）。JavaConfig配置方式也是基于Spring注解实现的，所以今天先来赏析下Spri">
+<meta name="twitter:image" content="http://ooegc62vm.bkt.clouddn.com/annotationSet.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    sidebar: {"position":"left","display":"post","offset":12,"offset_float":0,"b2t":false,"scrollpercent":false},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://www.zixing.me/2017/07/26/Spring中注解配置的源码剖析/"/>
+
+
+
+
+
+  <title> Spring中注解配置的源码剖析 | bingh's blog </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">bingh's blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">吾日三省吾身</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="http://www.zixing.me/2017/07/26/Spring中注解配置的源码剖析/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="bingh">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="bingh's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                Spring中注解配置的源码剖析
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-07-26T00:00:00+08:00">
+                2017-07-26
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Spring/" itemprop="url" rel="index">
+                    <span itemprop="name">Spring</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="一、引入与概述"><a href="#一、引入与概述" class="headerlink" title="一、引入与概述"></a>一、引入与概述</h2><h4 id="在spring4-0时代，推荐使用注解配合JavaConfig的方式完成程序的配置，相应的XmlBeanFactory被废弃。"><a href="#在spring4-0时代，推荐使用注解配合JavaConfig的方式完成程序的配置，相应的XmlBeanFactory被废弃。" class="headerlink" title="在spring4.0时代，推荐使用注解配合JavaConfig的方式完成程序的配置，相应的XmlBeanFactory被废弃。"></a>在spring4.0时代，推荐使用注解配合JavaConfig的方式完成程序的配置，相应的XmlBeanFactory被废弃。</h4><h4 id="Spring注解和JavaConfig配置方式成为Spring开发的主流方式，SpringBoot就是基于这两种方式实现的自动配置（SpringBoot的自动配置计划会写）。"><a href="#Spring注解和JavaConfig配置方式成为Spring开发的主流方式，SpringBoot就是基于这两种方式实现的自动配置（SpringBoot的自动配置计划会写）。" class="headerlink" title="Spring注解和JavaConfig配置方式成为Spring开发的主流方式，SpringBoot就是基于这两种方式实现的自动配置（SpringBoot的自动配置计划会写）。"></a>Spring注解和JavaConfig配置方式成为Spring开发的主流方式，SpringBoot就是基于这两种方式实现的自动配置（SpringBoot的自动配置计划会写）。</h4><h4 id="JavaConfig配置方式也是基于Spring注解实现的，所以今天先来赏析下Spring注解的实现。"><a href="#JavaConfig配置方式也是基于Spring注解实现的，所以今天先来赏析下Spring注解的实现。" class="headerlink" title="JavaConfig配置方式也是基于Spring注解实现的，所以今天先来赏析下Spring注解的实现。"></a>JavaConfig配置方式也是基于Spring注解实现的，所以今天先来赏析下Spring注解的实现。</h4><a id="more"></a>
+<h4 id="《JAVA编程思想》中关于注解是这么描述的。"><a href="#《JAVA编程思想》中关于注解是这么描述的。" class="headerlink" title="《JAVA编程思想》中关于注解是这么描述的。"></a>《JAVA编程思想》中关于注解是这么描述的。</h4><blockquote>
+<p>注解（元数据）为我们在代码中添加信息提供了一种形式化的方式，使我们在稍后的某些时刻非常方便的使用这些数据。注解在一定程度上将元数据和代码文件结合在一起。</p>
+</blockquote>
+<h4 id="注解可以认为是提供元数据的一种方式，元数据就是描述数据的数据。注解本身是不能进行逻辑处理的，需要相应的编写注解解析器。"><a href="#注解可以认为是提供元数据的一种方式，元数据就是描述数据的数据。注解本身是不能进行逻辑处理的，需要相应的编写注解解析器。" class="headerlink" title="注解可以认为是提供元数据的一种方式，元数据就是描述数据的数据。注解本身是不能进行逻辑处理的，需要相应的编写注解解析器。"></a>注解可以认为是提供元数据的一种方式，元数据就是描述数据的数据。注解本身是不能进行逻辑处理的，需要相应的编写注解解析器。</h4><h4 id="在Spring中，一个Bean要想被IOC容器更好的管理生命周期，处理依赖关系，首先自身得加入到Ioc容器。加入到容器后，可以添加Bean的后置处理器（BeanPostProcessor）作为注解解析器，解析相应的注解，Spring注解方式便可实现各种功能。那么纯注解的方式该怎么实现加入容器这至关重要的第一步呢？"><a href="#在Spring中，一个Bean要想被IOC容器更好的管理生命周期，处理依赖关系，首先自身得加入到Ioc容器。加入到容器后，可以添加Bean的后置处理器（BeanPostProcessor）作为注解解析器，解析相应的注解，Spring注解方式便可实现各种功能。那么纯注解的方式该怎么实现加入容器这至关重要的第一步呢？" class="headerlink" title="在Spring中，一个Bean要想被IOC容器更好的管理生命周期，处理依赖关系，首先自身得加入到Ioc容器。加入到容器后，可以添加Bean的后置处理器（BeanPostProcessor）作为注解解析器，解析相应的注解，Spring注解方式便可实现各种功能。那么纯注解的方式该怎么实现加入容器这至关重要的第一步呢？"></a>在Spring中，一个Bean要想被IOC容器更好的管理生命周期，处理依赖关系，首先自身得加入到Ioc容器。加入到容器后，可以添加Bean的后置处理器（BeanPostProcessor）作为注解解析器，解析相应的注解，Spring注解方式便可实现各种功能。那么纯注解的方式该怎么实现加入容器这至关重要的第一步呢？</h4><ul>
+<li>方案一：</li>
+</ul>
+<h5 id="指定路径，扫描全路径中，类被任何注解修饰的class文件，反射对象，加入容器。"><a href="#指定路径，扫描全路径中，类被任何注解修饰的class文件，反射对象，加入容器。" class="headerlink" title="指定路径，扫描全路径中，类被任何注解修饰的class文件，反射对象，加入容器。"></a>指定路径，扫描全路径中，类被任何注解修饰的class文件，反射对象，加入容器。</h5><h4 id="客户端程序员操作简单暴力，但无辜消耗时间空间。"><a href="#客户端程序员操作简单暴力，但无辜消耗时间空间。" class="headerlink" title="客户端程序员操作简单暴力，但无辜消耗时间空间。"></a><em>客户端程序员操作简单暴力，但无辜消耗时间空间。</em></h4><ul>
+<li>方案二：</li>
+</ul>
+<h5 id="明确指定要加入容器被注解修饰的class-反射对象，加入容器。"><a href="#明确指定要加入容器被注解修饰的class-反射对象，加入容器。" class="headerlink" title="明确指定要加入容器被注解修饰的class,反射对象，加入容器。"></a>明确指定要加入容器被注解修饰的class,反射对象，加入容器。</h5><h4 id="准确，恰当，细粒度控制，但对于客户端程序员来说，操作复杂，修改耦合。"><a href="#准确，恰当，细粒度控制，但对于客户端程序员来说，操作复杂，修改耦合。" class="headerlink" title="准确，恰当，细粒度控制，但对于客户端程序员来说，操作复杂，修改耦合。"></a><em>准确，恰当，细粒度控制，但对于客户端程序员来说，操作复杂，修改耦合。</em></h4><h4 id="Spring是如何实现注解方式把bean加入容器的呢？"><a href="#Spring是如何实现注解方式把bean加入容器的呢？" class="headerlink" title="Spring是如何实现注解方式把bean加入容器的呢？"></a>Spring是如何实现注解方式把bean加入容器的呢？</h4><h4 id="其实Spring的实现，也是以上两种方式，而且是都实现了。但对方案一做了更好的控制优化，并且实现方案二作为方案一的补充。"><a href="#其实Spring的实现，也是以上两种方式，而且是都实现了。但对方案一做了更好的控制优化，并且实现方案二作为方案一的补充。" class="headerlink" title="其实Spring的实现，也是以上两种方式，而且是都实现了。但对方案一做了更好的控制优化，并且实现方案二作为方案一的补充。"></a>其实Spring的实现，也是以上两种方式，而且是都实现了。但对方案一做了更好的控制优化，并且实现方案二作为方案一的补充。</h4><h4 id="Spring对方案一做的优化："><a href="#Spring对方案一做的优化：" class="headerlink" title="Spring对方案一做的优化："></a>Spring对方案一做的优化：</h4><h4 id="肯定路径扫描这种粗粒度的方式，但不能容忍以“任何注解修饰”这种条件把bean加入容器造成的资源浪费和可能给非Spring相关类、库造成的不可控。"><a href="#肯定路径扫描这种粗粒度的方式，但不能容忍以“任何注解修饰”这种条件把bean加入容器造成的资源浪费和可能给非Spring相关类、库造成的不可控。" class="headerlink" title="肯定路径扫描这种粗粒度的方式，但不能容忍以“任何注解修饰”这种条件把bean加入容器造成的资源浪费和可能给非Spring相关类、库造成的不可控。"></a>肯定路径扫描这种粗粒度的方式，但不能容忍以“任何注解修饰”这种条件把bean加入容器造成的资源浪费和可能给非Spring相关类、库造成的不可控。</h4><h4 id="要识别注解修饰类是否应该被加入容器，可以对注解类型做注册、过滤。Spring针对注解类型做了过滤器（AnnotationTypeFilter）。并且对注册做了优化，并不需要每个注解类型都注册一个类型过滤器，虽然Java注解并不支持继承，但是可以通过注解组合的方式传递注解类型。通俗些就是，我可以通过注解找到元注解，通过元注解找到元注解的元注解…这样得到元注解的类型信息也是可以过滤器match得到的。Spring就定义了这么一个“元注解”–-Compent。"><a href="#要识别注解修饰类是否应该被加入容器，可以对注解类型做注册、过滤。Spring针对注解类型做了过滤器（AnnotationTypeFilter）。并且对注册做了优化，并不需要每个注解类型都注册一个类型过滤器，虽然Java注解并不支持继承，但是可以通过注解组合的方式传递注解类型。通俗些就是，我可以通过注解找到元注解，通过元注解找到元注解的元注解…这样得到元注解的类型信息也是可以过滤器match得到的。Spring就定义了这么一个“元注解”–-Compent。" class="headerlink" title="要识别注解修饰类是否应该被加入容器，可以对注解类型做注册、过滤。Spring针对注解类型做了过滤器（AnnotationTypeFilter）。并且对注册做了优化，并不需要每个注解类型都注册一个类型过滤器，虽然Java注解并不支持继承，但是可以通过注解组合的方式传递注解类型。通俗些就是，我可以通过注解找到元注解，通过元注解找到元注解的元注解…这样得到元注解的类型信息也是可以过滤器match得到的。Spring就定义了这么一个“元注解”– @Compent。"></a>要识别注解修饰类是否应该被加入容器，可以对注解类型做注册、过滤。Spring针对注解类型做了过滤器（AnnotationTypeFilter）。并且对注册做了优化，并不需要每个注解类型都注册一个类型过滤器，虽然Java注解并不支持继承，但是可以通过注解组合的方式传递注解类型。通俗些就是，我可以通过注解找到元注解，通过元注解找到元注解的元注解…这样得到元注解的类型信息也是可以过滤器match得到的。Spring就定义了这么一个“元注解”– <em>@Compent</em>。</h4><h4 id="这样-Compent和某级元注解是-Compent的注解，就会被AnnotationTypeFilter-match。被这种注解修饰的类就会被注册到容器。"><a href="#这样-Compent和某级元注解是-Compent的注解，就会被AnnotationTypeFilter-match。被这种注解修饰的类就会被注册到容器。" class="headerlink" title="这样@Compent和某级元注解是@Compent的注解，就会被AnnotationTypeFilter match。被这种注解修饰的类就会被注册到容器。"></a>这样@Compent和某级元注解是@Compent的注解，就会被AnnotationTypeFilter match。被这种注解修饰的类就会被注册到容器。</h4><h4 id="关于注解的发现，Spring没有采用反射机制的Annotation-API-，而是使用asm类库直接操作-class文件，不需要加载类。"><a href="#关于注解的发现，Spring没有采用反射机制的Annotation-API-，而是使用asm类库直接操作-class文件，不需要加载类。" class="headerlink" title="关于注解的发现，Spring没有采用反射机制的Annotation API ，而是使用asm类库直接操作.class文件，不需要加载类。"></a>关于注解的发现，Spring没有采用反射机制的Annotation API ，而是使用asm类库直接操作.class文件，不需要加载类。</h4><blockquote>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2></blockquote>
+<ol>
+<li><h4 id="Spring使用扫描-Compent注解及其组合注解修饰类的方式配合AnnotationTypeFilter过滤器实现注解修饰类的加入容器问题。"><a href="#Spring使用扫描-Compent注解及其组合注解修饰类的方式配合AnnotationTypeFilter过滤器实现注解修饰类的加入容器问题。" class="headerlink" title="Spring使用扫描@Compent注解及其组合注解修饰类的方式配合AnnotationTypeFilter过滤器实现注解修饰类的加入容器问题。"></a>Spring使用扫描@Compent注解及其组合注解修饰类的方式配合AnnotationTypeFilter过滤器实现注解修饰类的加入容器问题。</h4></li>
+<li><h4 id="通过注册相应BeanPostProcessor做为注解解析器。"><a href="#通过注册相应BeanPostProcessor做为注解解析器。" class="headerlink" title="通过注册相应BeanPostProcessor做为注解解析器。"></a>通过注册相应BeanPostProcessor做为注解解析器。</h4></li>
+<li><h4 id="也可以直接注册指定的class-反射对象，加载到容器。"><a href="#也可以直接注册指定的class-反射对象，加载到容器。" class="headerlink" title="也可以直接注册指定的class,反射对象，加载到容器。"></a>也可以直接注册指定的class,反射对象，加载到容器。</h4></li>
+</ol>
+<h2 id="二、demo代码："><a href="#二、demo代码：" class="headerlink" title="二、demo代码："></a>二、demo代码：</h2><h3 id="三个Annotation："><a href="#三个Annotation：" class="headerlink" title="三个Annotation："></a>三个Annotation：</h3><blockquote>
+<p>MyAnno(没有被@Compent注解)</p>
+<p>MyCompentAnno(直接被@Compent注解)</p>
+<p>MyIndirectCompentAnno(间接被@Compent注解)</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">package</span> me.zixing.spring.ioc.annotation_application_context;</div><div class="line"></div><div class="line"><span class="keyword">import</span> java.lang.annotation.ElementType;</div><div class="line"><span class="keyword">import</span> java.lang.annotation.Retention;</div><div class="line"><span class="keyword">import</span> java.lang.annotation.RetentionPolicy;</div><div class="line"><span class="keyword">import</span> java.lang.annotation.Target;</div><div class="line"></div><div class="line"><span class="comment">/**</span></div><div class="line"> * Created by bingh on 2017/7/25.</div><div class="line"> */</div><div class="line"><span class="meta">@Target</span>(ElementType.TYPE)</div><div class="line"><span class="meta">@Retention</span>(RetentionPolicy.RUNTIME)</div><div class="line"><span class="keyword">public</span> <span class="meta">@interface</span> MyAnno &#123;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">package</span> me.zixing.spring.ioc.annotation_application_context;</div><div class="line"></div><div class="line"><span class="keyword">import</span> org.springframework.stereotype.Component;</div><div class="line"></div><div class="line"><span class="keyword">import</span> java.lang.annotation.ElementType;</div><div class="line"><span class="keyword">import</span> java.lang.annotation.Retention;</div><div class="line"><span class="keyword">import</span> java.lang.annotation.RetentionPolicy;</div><div class="line"><span class="keyword">import</span> java.lang.annotation.Target;</div><div class="line"></div><div class="line"><span class="comment">/**</span></div><div class="line"> * Created by bingh on 2017/7/26.</div><div class="line"> */</div><div class="line"><span class="meta">@Target</span>(ElementType.TYPE)</div><div class="line"><span class="meta">@Retention</span>(RetentionPolicy.RUNTIME)</div><div class="line"><span class="meta">@Component</span></div><div class="line"><span class="keyword">public</span> <span class="meta">@interface</span> MyCompentAnno &#123;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div></pre></td><td class="code"><pre><div class="line"></div><div class="line"><span class="keyword">package</span> me.zixing.spring.ioc.annotation_application_context;</div><div class="line"></div><div class="line"><span class="keyword">import</span> java.lang.annotation.ElementType;</div><div class="line"><span class="keyword">import</span> java.lang.annotation.Retention;</div><div class="line"><span class="keyword">import</span> java.lang.annotation.RetentionPolicy;</div><div class="line"><span class="keyword">import</span> java.lang.annotation.Target;</div><div class="line"></div><div class="line"><span class="comment">/**</span></div><div class="line"> * Created by bingh on 2017/7/26.</div><div class="line"> */</div><div class="line"><span class="meta">@Target</span>(ElementType.TYPE)</div><div class="line"><span class="meta">@Retention</span>(RetentionPolicy.RUNTIME)</div><div class="line"><span class="meta">@MyCompentAnno</span></div><div class="line"><span class="keyword">public</span> <span class="meta">@interface</span> MyIndirectCompentAnno &#123;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h3 id="三个基本Bean"><a href="#三个基本Bean" class="headerlink" title="三个基本Bean :"></a>三个基本Bean :</h3><blockquote>
+<p>BeanA(被@MyAnno注解) </p>
+<p>BeanB(被@MyCompentAnno注解)</p>
+<p>BeanC(被@MyIndirectCompentAnno注解)</p>
+<p>BeanD(被@Compent注解)</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">package</span> me.zixing.spring.ioc.annotation_application_context;</div><div class="line"></div><div class="line"><span class="comment">/**</span></div><div class="line"> * Created by bingh on 2017/7/24.</div><div class="line"> */</div><div class="line"><span class="meta">@MyAnno</span></div><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">BeanA</span> </span>&#123;</div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">show</span><span class="params">()</span></span>&#123;</div><div class="line">        System.out.println(<span class="string">"BeanA"</span>);</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line"></div><div class="line"><span class="keyword">package</span> me.zixing.spring.ioc.annotation_application_context;</div><div class="line"></div><div class="line"><span class="comment">/**</span></div><div class="line"> * Created by bingh on 2017/7/26.</div><div class="line"> */</div><div class="line"><span class="meta">@MyCompentAnno</span></div><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">BeanB</span> </span>&#123;</div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">show</span><span class="params">()</span></span>&#123;</div><div class="line">        System.out.println(<span class="string">"BeanB"</span>);</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line"></div><div class="line"><span class="keyword">package</span> me.zixing.spring.ioc.annotation_application_context;</div><div class="line"></div><div class="line"><span class="comment">/**</span></div><div class="line"> * Created by bingh on 2017/7/26.</div><div class="line"> */</div><div class="line"><span class="meta">@MyIndirectCompentAnno</span></div><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">BeanC</span> </span>&#123;</div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">show</span><span class="params">()</span></span>&#123;</div><div class="line">        System.out.println(<span class="string">"BeanC"</span>);</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">package</span> me.zixing.spring.ioc.annotation_application_context;</div><div class="line"></div><div class="line"><span class="keyword">import</span> org.springframework.stereotype.Component;</div><div class="line"></div><div class="line"><span class="comment">/**</span></div><div class="line"> * Created by bingh on 2017/7/26.</div><div class="line"> */</div><div class="line"><span class="meta">@Component</span></div><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">BeanD</span> </span>&#123;</div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">show</span><span class="params">()</span></span>&#123;</div><div class="line">        System.out.println(<span class="string">"BeanD"</span>);</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<blockquote>
+<p>测试类 TestAnnotationApplicationContext</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div></pre></td><td class="code"><pre><div class="line"></div><div class="line"><span class="keyword">package</span> me.zixing.spring.ioc.annotation_application_context;</div><div class="line"></div><div class="line"><span class="keyword">import</span> org.junit.Test;</div><div class="line"><span class="keyword">import</span> org.springframework.context.ApplicationContext;</div><div class="line"><span class="keyword">import</span> org.springframework.context.annotation.AnnotationConfigApplicationContext;</div><div class="line"></div><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">TestAnnotationApplicationContext</span> </span>&#123;</div><div class="line">    <span class="meta">@Test</span></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">test</span><span class="params">()</span></span>&#123;</div><div class="line">        ApplicationContext applicationContext =</div><div class="line">                <span class="keyword">new</span> AnnotationConfigApplicationContext(<span class="string">"me.zixing.spring.ioc.annotation_application_context"</span>);</div><div class="line">        <span class="comment">//! BeanA beanA = applicationContext.getBean(BeanA.class);</span></div><div class="line">        BeanB beanB = applicationContext.getBean(BeanB.class);</div><div class="line">        BeanC beanC = applicationContext.getBean(BeanC.class);</div><div class="line">        BeanD beanD = applicationContext.getBean(BeanD.class);</div><div class="line">        <span class="comment">//! beanA.show();</span></div><div class="line">        beanB.show();</div><div class="line">        beanC.show();</div><div class="line">        beanD.show();</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<blockquote>
+<p>结果：</p>
+<p>BeanB BeanC BeanD</p>
+</blockquote>
+<h3 id="结论："><a href="#结论：" class="headerlink" title="结论："></a>结论：</h3><blockquote>
+<p>BeanA没有被加进容器，实现被注解类的过滤注册</p>
+<p>BeanB被加入容器，元注解为@Compent的注解match</p>
+<p>BeanC被加入容器，某级元注解为@Compent的注解match </p>
+<p>BeanD被加入容器，注解@Compent match</p>
+</blockquote>
+<h2 id="三、源码解析："><a href="#三、源码解析：" class="headerlink" title="三、源码解析："></a>三、源码解析：</h2><blockquote>
+<p>从测试代码构造ApplicationContext入手</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">ApplicationContext applicationContext =</div><div class="line">               <span class="keyword">new</span> AnnotationConfigApplicationContext(<span class="string">"me.zixing.spring.ioc.annotation_application_context"</span>);</div></pre></td></tr></table></figure>
+<blockquote>
+<p>进去看构造函数 ↓↓↓↓</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line"></div><div class="line"><span class="comment">/**</span></div><div class="line"> * Create a new AnnotationConfigApplicationContext, scanning for bean definitions</div><div class="line"> * in the given packages and automatically refreshing the context.</div><div class="line"> * <span class="doctag">@param</span> basePackages the packages to check for annotated classes</div><div class="line"> */</div><div class="line"><span class="function"><span class="keyword">public</span> <span class="title">AnnotationConfigApplicationContext</span><span class="params">(String... basePackages)</span> </span>&#123;</div><div class="line">	<span class="keyword">this</span>();<span class="comment">//设置reader和scanner</span></div><div class="line">	scan(basePackages);<span class="comment">//扫描给定包下的class,符合过滤条件的注册BeanDefinition到容器</span></div><div class="line">	refresh();<span class="comment">//刷新：准备环境，创建、设置beanFactory</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<blockquote>
+<p>无参构造，设置reader和scanner,ranh<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line"></div><div class="line"><span class="comment">/**</span></div><div class="line"> * Create a new AnnotationConfigApplicationContext that needs to be populated</div><div class="line"> * through &#123;<span class="doctag">@link</span> #register&#125; calls and then manually &#123;<span class="doctag">@linkplain</span> #refresh refreshed&#125;.</div><div class="line"> */</div><div class="line"><span class="function"><span class="keyword">public</span> <span class="title">AnnotationConfigApplicationContext</span><span class="params">()</span> </span>&#123;</div><div class="line">	<span class="keyword">this</span>.reader = <span class="keyword">new</span> AnnotatedBeanDefinitionReader(<span class="keyword">this</span>);</div><div class="line">	<span class="keyword">this</span>.scanner = <span class="keyword">new</span> ClassPathBeanDefinitionScanner(<span class="keyword">this</span>);</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>关于refresh()方法不是这里的重点，但他是ApplicationContext的重点入口，只是这里不再多说。</p>
+<p>scan()函数:扫描的入口函数，委托调用scanner的scan函数</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line"><span class="comment">/**</span></div><div class="line"> * Perform a scan within the specified base packages.</div><div class="line"> * &lt;p&gt;Note that &#123;<span class="doctag">@link</span> #refresh()&#125; must be called in order for the context</div><div class="line"> * to fully process the new classes.</div><div class="line"> * <span class="doctag">@param</span> basePackages the packages to check for annotated classes</div><div class="line"> * <span class="doctag">@see</span> #register(Class...)</div><div class="line"> * <span class="doctag">@see</span> #refresh()</div><div class="line"> */</div><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">scan</span><span class="params">(String... basePackages)</span> </span>&#123;</div><div class="line">	Assert.notEmpty(basePackages, <span class="string">"At least one base package must be specified"</span>);</div><div class="line">	<span class="keyword">this</span>.scanner.scan(basePackages);</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<blockquote>
+<p>scanner的scan函数重真正做事的是scanner的doScan函数</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div></pre></td><td class="code"><pre><div class="line"></div><div class="line"><span class="comment">/**</span></div><div class="line">	 * Perform a scan within the specified base packages.</div><div class="line">	 * <span class="doctag">@param</span> basePackages the packages to check for annotated classes</div><div class="line">	 * <span class="doctag">@return</span> number of beans registered</div><div class="line">	 */</div><div class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">scan</span><span class="params">(String... basePackages)</span> </span>&#123;</div><div class="line">		<span class="keyword">int</span> beanCountAtScanStart = <span class="keyword">this</span>.registry.getBeanDefinitionCount();</div><div class="line"></div><div class="line">		doScan(basePackages);<span class="comment">//扫描逻辑</span></div><div class="line"></div><div class="line">		<span class="comment">// Register annotation config processors, if necessary.</span></div><div class="line">		<span class="keyword">if</span> (<span class="keyword">this</span>.includeAnnotationConfig) &#123;</div><div class="line">			AnnotationConfigUtils.registerAnnotationConfigProcessors(<span class="keyword">this</span>.registry);</div><div class="line">		&#125;</div><div class="line"></div><div class="line">		<span class="keyword">return</span> (<span class="keyword">this</span>.registry.getBeanDefinitionCount() - beanCountAtScanStart);</div><div class="line">	&#125;</div></pre></td></tr></table></figure>
+<blockquote>
+<p>doScan</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div></pre></td><td class="code"><pre><div class="line"></div><div class="line"><span class="comment">/**</span></div><div class="line">	 * Perform a scan within the specified base packages,</div><div class="line">	 * returning the registered bean definitions.</div><div class="line">	 * &lt;p&gt;This method does &lt;i&gt;not&lt;/i&gt; register an annotation config processor</div><div class="line">	 * but rather leaves this up to the caller.</div><div class="line">	 * <span class="doctag">@param</span> basePackages the packages to check for annotated classes</div><div class="line">	 * <span class="doctag">@return</span> set of beans registered if any for tooling registration purposes (never &#123;<span class="doctag">@code</span> null&#125;)</div><div class="line">	 */</div><div class="line">	<span class="function"><span class="keyword">protected</span> Set&lt;BeanDefinitionHolder&gt; <span class="title">doScan</span><span class="params">(String... basePackages)</span> </span>&#123;</div><div class="line">		Assert.notEmpty(basePackages, <span class="string">"At least one base package must be specified"</span>);</div><div class="line">		Set&lt;BeanDefinitionHolder&gt; beanDefinitions = <span class="keyword">new</span> LinkedHashSet&lt;BeanDefinitionHolder&gt;();</div><div class="line">		<span class="keyword">for</span> (String basePackage : basePackages) &#123;</div><div class="line">			Set&lt;BeanDefinition&gt; candidates = findCandidateComponents(basePackage);<span class="comment">//这是发现候选组件的逻辑入口函数</span></div><div class="line">			<span class="keyword">for</span> (BeanDefinition candidate : candidates) &#123;</div><div class="line">				ScopeMetadata scopeMetadata = <span class="keyword">this</span>.scopeMetadataResolver.resolveScopeMetadata(candidate);</div><div class="line">				candidate.setScope(scopeMetadata.getScopeName());</div><div class="line">				String beanName = <span class="keyword">this</span>.beanNameGenerator.generateBeanName(candidate, <span class="keyword">this</span>.registry);</div><div class="line">				<span class="keyword">if</span> (candidate <span class="keyword">instanceof</span> AbstractBeanDefinition) &#123;</div><div class="line">					postProcessBeanDefinition((AbstractBeanDefinition) candidate, beanName);</div><div class="line">				&#125;</div><div class="line">				<span class="keyword">if</span> (candidate <span class="keyword">instanceof</span> AnnotatedBeanDefinition) &#123;</div><div class="line">					AnnotationConfigUtils.processCommonDefinitionAnnotations((AnnotatedBeanDefinition) candidate);</div><div class="line">				&#125;</div><div class="line">				<span class="keyword">if</span> (checkCandidate(beanName, candidate)) &#123;</div><div class="line">					BeanDefinitionHolder definitionHolder = <span class="keyword">new</span> BeanDefinitionHolder(candidate, beanName);</div><div class="line">					definitionHolder = AnnotationConfigUtils.applyScopedProxyMode(scopeMetadata, definitionHolder, <span class="keyword">this</span>.registry);</div><div class="line">					beanDefinitions.add(definitionHolder);</div><div class="line">					registerBeanDefinition(definitionHolder, <span class="keyword">this</span>.registry);</div><div class="line">				&#125;</div><div class="line">			&#125;</div><div class="line">		&#125;</div><div class="line">		<span class="keyword">return</span> beanDefinitions;</div><div class="line">	&#125;</div></pre></td></tr></table></figure>
+<blockquote>
+<p>findCandidateComponents()</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div></pre></td><td class="code"><pre><div class="line"></div><div class="line"><span class="comment">/**</span></div><div class="line">	 * Scan the class path for candidate components.</div><div class="line">	 * <span class="doctag">@param</span> basePackage the package to check for annotated classes</div><div class="line">	 * <span class="doctag">@return</span> a corresponding Set of autodetected bean definitions</div><div class="line">	 */</div><div class="line">	<span class="function"><span class="keyword">public</span> Set&lt;BeanDefinition&gt; <span class="title">findCandidateComponents</span><span class="params">(String basePackage)</span> </span>&#123;</div><div class="line">        <span class="comment">//创建set容器盛放符合过滤条件的class生成的BeanDefinition</span></div><div class="line">		Set&lt;BeanDefinition&gt; candidates = <span class="keyword">new</span> LinkedHashSet&lt;BeanDefinition&gt;();</div><div class="line">		<span class="keyword">try</span> &#123;</div><div class="line">            <span class="comment">//扫描路径补齐</span></div><div class="line">			String packageSearchPath = ResourcePatternResolver.CLASSPATH_ALL_URL_PREFIX +</div><div class="line">					resolveBasePackage(basePackage) + <span class="string">"/"</span> + <span class="keyword">this</span>.resourcePattern;</div><div class="line">            <span class="comment">//由路径生成资源</span></div><div class="line">			Resource[] resources = <span class="keyword">this</span>.resourcePatternResolver.getResources(packageSearchPath);</div><div class="line">			<span class="keyword">boolean</span> traceEnabled = logger.isTraceEnabled();</div><div class="line">			<span class="keyword">boolean</span> debugEnabled = logger.isDebugEnabled();</div><div class="line">            <span class="comment">//对每个资源文件进行遍历处理</span></div><div class="line">			<span class="keyword">for</span> (Resource resource : resources) &#123;</div><div class="line">				<span class="keyword">if</span> (traceEnabled) &#123;</div><div class="line">					logger.trace(<span class="string">"Scanning "</span> + resource);</div><div class="line">				&#125;</div><div class="line">                <span class="comment">//资源文件是否可读</span></div><div class="line">				<span class="keyword">if</span> (resource.isReadable()) &#123;</div><div class="line">					<span class="keyword">try</span> &#123;</div><div class="line">                        <span class="comment">//生成class的元数据Reader,使用asm库实现</span></div><div class="line">                        <span class="comment">//metadataReader里面含有class的元数据和注解的元数据，这里面又含有类的注解，属性的注解，方法的注解，元注解</span></div><div class="line">						MetadataReader metadataReader = <span class="keyword">this</span>.metadataReaderFactory.getMetadataReader(resource);</div><div class="line">                        <span class="comment">//match AnnotationType</span></div><div class="line">						<span class="keyword">if</span> (isCandidateComponent(metadataReader)) &#123;</div><div class="line">							ScannedGenericBeanDefinition sbd = <span class="keyword">new</span> ScannedGenericBeanDefinition(metadataReader);</div><div class="line">							sbd.setResource(resource);</div><div class="line">							sbd.setSource(resource);</div><div class="line">                            <span class="comment">//是具体的类(非abstract interface)，且不是内部类，就是要找的组件了</span></div><div class="line">							<span class="keyword">if</span> (isCandidateComponent(sbd)) &#123;</div><div class="line">								<span class="keyword">if</span> (debugEnabled) &#123;</div><div class="line">									logger.debug(<span class="string">"Identified candidate component class: "</span> + resource);</div><div class="line">								&#125;</div><div class="line">                                <span class="comment">//加入set</span></div><div class="line">								candidates.add(sbd);</div><div class="line">							&#125;</div><div class="line">							<span class="keyword">else</span> &#123;</div><div class="line">								<span class="keyword">if</span> (debugEnabled) &#123;</div><div class="line">									logger.debug(<span class="string">"Ignored because not a concrete top-level class: "</span> + resource);</div><div class="line">								&#125;</div><div class="line">							&#125;</div><div class="line">						&#125;</div><div class="line">						<span class="keyword">else</span> &#123;</div><div class="line">							<span class="keyword">if</span> (traceEnabled) &#123;</div><div class="line">								logger.trace(<span class="string">"Ignored because not matching any filter: "</span> + resource);</div><div class="line">							&#125;</div><div class="line">						&#125;</div><div class="line">					&#125;</div><div class="line">					<span class="keyword">catch</span> (Throwable ex) &#123;</div><div class="line">						<span class="keyword">throw</span> <span class="keyword">new</span> BeanDefinitionStoreException(</div><div class="line">								<span class="string">"Failed to read candidate component class: "</span> + resource, ex);</div><div class="line">					&#125;</div><div class="line">				&#125;</div><div class="line">				<span class="keyword">else</span> &#123;</div><div class="line">					<span class="keyword">if</span> (traceEnabled) &#123;</div><div class="line">						logger.trace(<span class="string">"Ignored because not readable: "</span> + resource);</div><div class="line">					&#125;</div><div class="line">				&#125;</div><div class="line">			&#125;</div><div class="line">		&#125;</div><div class="line">		<span class="keyword">catch</span> (IOException ex) &#123;</div><div class="line">			<span class="keyword">throw</span> <span class="keyword">new</span> BeanDefinitionStoreException(<span class="string">"I/O failure during classpath scanning"</span>, ex);</div><div class="line">		&#125;</div><div class="line">		<span class="keyword">return</span> candidates;</div><div class="line">	&#125;</div></pre></td></tr></table></figure>
+<blockquote>
+<p>判断组件有效</p>
+<p>判断符合excludeFilters和includeFilters的filter match<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div></pre></td><td class="code"><pre><div class="line"></div><div class="line"><span class="comment">/**</span></div><div class="line">	 * Determine whether the given class does not match any exclude filter</div><div class="line">	 * and does match at least one include filter.</div><div class="line">	 * <span class="doctag">@param</span> metadataReader the ASM ClassReader for the class</div><div class="line">	 * <span class="doctag">@return</span> whether the class qualifies as a candidate component</div><div class="line">	 */</div><div class="line">	<span class="function"><span class="keyword">protected</span> <span class="keyword">boolean</span> <span class="title">isCandidateComponent</span><span class="params">(MetadataReader metadataReader)</span> <span class="keyword">throws</span> IOException </span>&#123;</div><div class="line">        <span class="comment">//excludeFilters</span></div><div class="line">		<span class="keyword">for</span> (TypeFilter tf : <span class="keyword">this</span>.excludeFilters) &#123;</div><div class="line">			<span class="keyword">if</span> (tf.match(metadataReader, <span class="keyword">this</span>.metadataReaderFactory)) &#123;</div><div class="line">				<span class="keyword">return</span> <span class="keyword">false</span>;</div><div class="line">			&#125;</div><div class="line">		&#125;</div><div class="line">        <span class="comment">//includeFilters</span></div><div class="line">		<span class="keyword">for</span> (TypeFilter tf : <span class="keyword">this</span>.includeFilters) &#123;</div><div class="line">			<span class="keyword">if</span> (tf.match(metadataReader, <span class="keyword">this</span>.metadataReaderFactory)) &#123;</div><div class="line">				<span class="keyword">return</span> isConditionMatch(metadataReader);</div><div class="line">			&#125;</div><div class="line">		&#125;</div><div class="line">		<span class="keyword">return</span> <span class="keyword">false</span>;</div><div class="line">	&#125;</div></pre></td></tr></table></figure></p>
+<p>includeFilter里有AnnotationTypeFilter，我们看看实现</p>
+<p>整个的match逻辑被父类match方法固定了，matchself ，matchsupclass,matchinterface这些方法由子类重写实现（模板方法模式）</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div></pre></td><td class="code"><pre><div class="line"></div><div class="line"><span class="meta">@Override</span></div><div class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">match</span><span class="params">(MetadataReader metadataReader, MetadataReaderFactory metadataReaderFactory)</span></span></div><div class="line">			<span class="keyword">throws</span> IOException &#123;</div><div class="line"></div><div class="line">		<span class="comment">// This method optimizes avoiding unnecessary creation of ClassReaders</span></div><div class="line">		<span class="comment">// as well as visiting over those readers.</span></div><div class="line">		<span class="keyword">if</span> (matchSelf(metadataReader)) &#123;</div><div class="line">			<span class="keyword">return</span> <span class="keyword">true</span>;</div><div class="line">		&#125;</div><div class="line">		ClassMetadata metadata = metadataReader.getClassMetadata();</div><div class="line">		<span class="keyword">if</span> (matchClassName(metadata.getClassName())) &#123;</div><div class="line">			<span class="keyword">return</span> <span class="keyword">true</span>;</div><div class="line">		&#125;</div><div class="line"></div><div class="line">		<span class="keyword">if</span> (<span class="keyword">this</span>.considerInherited) &#123;</div><div class="line">			<span class="keyword">if</span> (metadata.hasSuperClass()) &#123;</div><div class="line">				<span class="comment">// Optimization to avoid creating ClassReader for super class.</span></div><div class="line">				Boolean superClassMatch = matchSuperClass(metadata.getSuperClassName());</div><div class="line">				<span class="keyword">if</span> (superClassMatch != <span class="keyword">null</span>) &#123;</div><div class="line">					<span class="keyword">if</span> (superClassMatch.booleanValue()) &#123;</div><div class="line">						<span class="keyword">return</span> <span class="keyword">true</span>;</div><div class="line">					&#125;</div><div class="line">				&#125;</div><div class="line">				<span class="keyword">else</span> &#123;</div><div class="line">					<span class="comment">// Need to read super class to determine a match...</span></div><div class="line">					<span class="keyword">try</span> &#123;</div><div class="line">						<span class="keyword">if</span> (match(metadata.getSuperClassName(), metadataReaderFactory)) &#123;</div><div class="line">							<span class="keyword">return</span> <span class="keyword">true</span>;</div><div class="line">						&#125;</div><div class="line">					&#125;</div><div class="line">					<span class="keyword">catch</span> (IOException ex) &#123;</div><div class="line">						logger.debug(<span class="string">"Could not read super class ["</span> + metadata.getSuperClassName() +</div><div class="line">								<span class="string">"] of type-filtered class ["</span> + metadata.getClassName() + <span class="string">"]"</span>);</div><div class="line">					&#125;</div><div class="line"> 				&#125;</div><div class="line">			&#125;</div><div class="line">		&#125;</div><div class="line"></div><div class="line">		<span class="keyword">if</span> (<span class="keyword">this</span>.considerInterfaces) &#123;</div><div class="line">			<span class="keyword">for</span> (String ifc : metadata.getInterfaceNames()) &#123;</div><div class="line">				<span class="comment">// Optimization to avoid creating ClassReader for super class</span></div><div class="line">				Boolean interfaceMatch = matchInterface(ifc);</div><div class="line">				<span class="keyword">if</span> (interfaceMatch != <span class="keyword">null</span>) &#123;</div><div class="line">					<span class="keyword">if</span> (interfaceMatch.booleanValue()) &#123;</div><div class="line">						<span class="keyword">return</span> <span class="keyword">true</span>;</div><div class="line">					&#125;</div><div class="line">				&#125;</div><div class="line">				<span class="keyword">else</span> &#123;</div><div class="line">					<span class="comment">// Need to read interface to determine a match...</span></div><div class="line">					<span class="keyword">try</span> &#123;</div><div class="line">						<span class="keyword">if</span> (match(ifc, metadataReaderFactory)) &#123;</div><div class="line">							<span class="keyword">return</span> <span class="keyword">true</span>;</div><div class="line">						&#125;</div><div class="line">					&#125;</div><div class="line">					<span class="keyword">catch</span> (IOException ex) &#123;</div><div class="line">						logger.debug(<span class="string">"Could not read interface ["</span> + ifc + <span class="string">"] for type-filtered class ["</span> +</div><div class="line">								metadata.getClassName() + <span class="string">"]"</span>);</div><div class="line">					&#125;</div><div class="line">				&#125;</div><div class="line">			&#125;</div><div class="line">		&#125;</div><div class="line"></div><div class="line">		<span class="keyword">return</span> <span class="keyword">false</span>;</div><div class="line">	&#125;</div></pre></td></tr></table></figure>
+<blockquote>
+<p>我们现在不考虑其他情况，简单分析AnnotationTypeFilter的matchSelf方法</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line"></div><div class="line">   <span class="meta">@Override</span></div><div class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">boolean</span> <span class="title">matchSelf</span><span class="params">(MetadataReader metadataReader)</span> </span>&#123;</div><div class="line">	AnnotationMetadata metadata = metadataReader.getAnnotationMetadata();</div><div class="line">	<span class="keyword">return</span> metadata.hasAnnotation(<span class="keyword">this</span>.annotationType.getName()) ||</div><div class="line">			(<span class="keyword">this</span>.considerMetaAnnotations &amp;&amp; metadata.hasMetaAnnotation(<span class="keyword">this</span>.annotationType.getName()));</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<blockquote>
+<p>metadata.hasAnnotation()和metadata.hasMetaAnnotation</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"></div><div class="line"><span class="meta">@Override</span></div><div class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">hasAnnotation</span><span class="params">(String annotationType)</span> </span>&#123;</div><div class="line">		<span class="keyword">return</span> <span class="keyword">this</span>.annotationSet.contains(annotationType);</div><div class="line">	&#125;</div></pre></td></tr></table></figure>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line"></div><div class="line"><span class="meta">@Override</span></div><div class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">hasMetaAnnotation</span><span class="params">(String metaAnnotationType)</span> </span>&#123;</div><div class="line">		Collection&lt;Set&lt;String&gt;&gt; allMetaTypes = <span class="keyword">this</span>.metaAnnotationMap.values();</div><div class="line">		<span class="keyword">for</span> (Set&lt;String&gt; metaTypes : allMetaTypes) &#123;</div><div class="line">			<span class="keyword">if</span> (metaTypes.contains(metaAnnotationType)) &#123;</div><div class="line">				<span class="keyword">return</span> <span class="keyword">true</span>;</div><div class="line">			&#125;</div><div class="line">		&#125;</div><div class="line">		<span class="keyword">return</span> <span class="keyword">false</span>;</div><div class="line">	&#125;</div></pre></td></tr></table></figure>
+<blockquote>
+<p>通过调试看看annotationSet和metaAnnotationMap都装了些什么</p>
+<p>annotationSet存放的是直接注解这个类的注解</p>
+</blockquote>
+<p><img src="http://ooegc62vm.bkt.clouddn.com/annotationSet.png" alt="annotationSet"></p>
+<blockquote>
+<p>metaAnnotationMap存放的是Key:这个类的直接注解全路径名，value是个set，存放的是key 注解的各级元注解</p>
+</blockquote>
+<p><img src="http://ooegc62vm.bkt.clouddn.com/metaAnnotationMap.png" alt="metaAnnotationMap"></p>
+<blockquote>
+<p>代码意思很清晰，注解或各级元注解中是否包含this.annotationType.getName()[如果考虑元注解]</p>
+<p>现在就来看看这个 this.annotationType</p>
+</blockquote>
+<p><img src="http://ooegc62vm.bkt.clouddn.com/annotationType.png" alt="annotationType"></p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Spring/" rel="tag"># Spring</a>
+          
+            <a href="/tags/注解/" rel="tag"># 注解</a>
+          
+        </div>
+      
+
+      
+        
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2017/05/13/Linux系统基础调优之关闭防火墙/" rel="prev" title="linux系统基础调优之关闭防火墙">
+                linux系统基础调优之关闭防火墙 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/images/avatar.gif"
+               alt="bingh" />
+          <p class="site-author-name" itemprop="name">bingh</p>
+           
+              <p class="site-description motion-element" itemprop="description">bingh</p>
+          
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives">
+                <span class="site-state-item-count">6</span>
+                <span class="site-state-item-name">日志</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              <a href="/categories/index.html">
+                <span class="site-state-item-count">2</span>
+                <span class="site-state-item-name">分类</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              <a href="/tags/index.html">
+                <span class="site-state-item-count">8</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+        
+        
+
+        
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#一、引入与概述"><span class="nav-number">1.</span> <span class="nav-text">一、引入与概述</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#在spring4-0时代，推荐使用注解配合JavaConfig的方式完成程序的配置，相应的XmlBeanFactory被废弃。"><span class="nav-number">1.0.1.</span> <span class="nav-text">在spring4.0时代，推荐使用注解配合JavaConfig的方式完成程序的配置，相应的XmlBeanFactory被废弃。</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Spring注解和JavaConfig配置方式成为Spring开发的主流方式，SpringBoot就是基于这两种方式实现的自动配置（SpringBoot的自动配置计划会写）。"><span class="nav-number">1.0.2.</span> <span class="nav-text">Spring注解和JavaConfig配置方式成为Spring开发的主流方式，SpringBoot就是基于这两种方式实现的自动配置（SpringBoot的自动配置计划会写）。</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#JavaConfig配置方式也是基于Spring注解实现的，所以今天先来赏析下Spring注解的实现。"><span class="nav-number">1.0.3.</span> <span class="nav-text">JavaConfig配置方式也是基于Spring注解实现的，所以今天先来赏析下Spring注解的实现。</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#《JAVA编程思想》中关于注解是这么描述的。"><span class="nav-number">1.0.4.</span> <span class="nav-text">《JAVA编程思想》中关于注解是这么描述的。</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#注解可以认为是提供元数据的一种方式，元数据就是描述数据的数据。注解本身是不能进行逻辑处理的，需要相应的编写注解解析器。"><span class="nav-number">1.0.5.</span> <span class="nav-text">注解可以认为是提供元数据的一种方式，元数据就是描述数据的数据。注解本身是不能进行逻辑处理的，需要相应的编写注解解析器。</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#在Spring中，一个Bean要想被IOC容器更好的管理生命周期，处理依赖关系，首先自身得加入到Ioc容器。加入到容器后，可以添加Bean的后置处理器（BeanPostProcessor）作为注解解析器，解析相应的注解，Spring注解方式便可实现各种功能。那么纯注解的方式该怎么实现加入容器这至关重要的第一步呢？"><span class="nav-number">1.0.6.</span> <span class="nav-text">在Spring中，一个Bean要想被IOC容器更好的管理生命周期，处理依赖关系，首先自身得加入到Ioc容器。加入到容器后，可以添加Bean的后置处理器（BeanPostProcessor）作为注解解析器，解析相应的注解，Spring注解方式便可实现各种功能。那么纯注解的方式该怎么实现加入容器这至关重要的第一步呢？</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#指定路径，扫描全路径中，类被任何注解修饰的class文件，反射对象，加入容器。"><span class="nav-number">1.0.6.1.</span> <span class="nav-text">指定路径，扫描全路径中，类被任何注解修饰的class文件，反射对象，加入容器。</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#客户端程序员操作简单暴力，但无辜消耗时间空间。"><span class="nav-number">1.0.7.</span> <span class="nav-text">客户端程序员操作简单暴力，但无辜消耗时间空间。</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#明确指定要加入容器被注解修饰的class-反射对象，加入容器。"><span class="nav-number">1.0.7.1.</span> <span class="nav-text">明确指定要加入容器被注解修饰的class,反射对象，加入容器。</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#准确，恰当，细粒度控制，但对于客户端程序员来说，操作复杂，修改耦合。"><span class="nav-number">1.0.8.</span> <span class="nav-text">准确，恰当，细粒度控制，但对于客户端程序员来说，操作复杂，修改耦合。</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Spring是如何实现注解方式把bean加入容器的呢？"><span class="nav-number">1.0.9.</span> <span class="nav-text">Spring是如何实现注解方式把bean加入容器的呢？</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#其实Spring的实现，也是以上两种方式，而且是都实现了。但对方案一做了更好的控制优化，并且实现方案二作为方案一的补充。"><span class="nav-number">1.0.10.</span> <span class="nav-text">其实Spring的实现，也是以上两种方式，而且是都实现了。但对方案一做了更好的控制优化，并且实现方案二作为方案一的补充。</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Spring对方案一做的优化："><span class="nav-number">1.0.11.</span> <span class="nav-text">Spring对方案一做的优化：</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#肯定路径扫描这种粗粒度的方式，但不能容忍以“任何注解修饰”这种条件把bean加入容器造成的资源浪费和可能给非Spring相关类、库造成的不可控。"><span class="nav-number">1.0.12.</span> <span class="nav-text">肯定路径扫描这种粗粒度的方式，但不能容忍以“任何注解修饰”这种条件把bean加入容器造成的资源浪费和可能给非Spring相关类、库造成的不可控。</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#要识别注解修饰类是否应该被加入容器，可以对注解类型做注册、过滤。Spring针对注解类型做了过滤器（AnnotationTypeFilter）。并且对注册做了优化，并不需要每个注解类型都注册一个类型过滤器，虽然Java注解并不支持继承，但是可以通过注解组合的方式传递注解类型。通俗些就是，我可以通过注解找到元注解，通过元注解找到元注解的元注解…这样得到元注解的类型信息也是可以过滤器match得到的。Spring就定义了这么一个“元注解”–-Compent。"><span class="nav-number">1.0.13.</span> <span class="nav-text">要识别注解修饰类是否应该被加入容器，可以对注解类型做注册、过滤。Spring针对注解类型做了过滤器（AnnotationTypeFilter）。并且对注册做了优化，并不需要每个注解类型都注册一个类型过滤器，虽然Java注解并不支持继承，但是可以通过注解组合的方式传递注解类型。通俗些就是，我可以通过注解找到元注解，通过元注解找到元注解的元注解…这样得到元注解的类型信息也是可以过滤器match得到的。Spring就定义了这么一个“元注解”– @Compent。</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#这样-Compent和某级元注解是-Compent的注解，就会被AnnotationTypeFilter-match。被这种注解修饰的类就会被注册到容器。"><span class="nav-number">1.0.14.</span> <span class="nav-text">这样@Compent和某级元注解是@Compent的注解，就会被AnnotationTypeFilter match。被这种注解修饰的类就会被注册到容器。</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#关于注解的发现，Spring没有采用反射机制的Annotation-API-，而是使用asm类库直接操作-class文件，不需要加载类。"><span class="nav-number">1.0.15.</span> <span class="nav-text">关于注解的发现，Spring没有采用反射机制的Annotation API ，而是使用asm类库直接操作.class文件，不需要加载类。</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#总结"><span class="nav-number">2.</span> <span class="nav-text">总结</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Spring使用扫描-Compent注解及其组合注解修饰类的方式配合AnnotationTypeFilter过滤器实现注解修饰类的加入容器问题。"><span class="nav-number">2.0.1.</span> <span class="nav-text">Spring使用扫描@Compent注解及其组合注解修饰类的方式配合AnnotationTypeFilter过滤器实现注解修饰类的加入容器问题。</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#通过注册相应BeanPostProcessor做为注解解析器。"><span class="nav-number">2.0.2.</span> <span class="nav-text">通过注册相应BeanPostProcessor做为注解解析器。</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#也可以直接注册指定的class-反射对象，加载到容器。"><span class="nav-number">2.0.3.</span> <span class="nav-text">也可以直接注册指定的class,反射对象，加载到容器。</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#二、demo代码："><span class="nav-number">3.</span> <span class="nav-text">二、demo代码：</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#三个Annotation："><span class="nav-number">3.1.</span> <span class="nav-text">三个Annotation：</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#三个基本Bean"><span class="nav-number">3.2.</span> <span class="nav-text">三个基本Bean :</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#结论："><span class="nav-number">3.3.</span> <span class="nav-text">结论：</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#三、源码解析："><span class="nav-number">4.</span> <span class="nav-text">三、源码解析：</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">bingh</span>
+</div>
+
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Muse
+  </a>
+</div>
+
+
+        
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.0"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.0"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.0"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.0"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.0"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
